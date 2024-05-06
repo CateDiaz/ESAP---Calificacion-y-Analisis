@@ -1,12 +1,225 @@
 ---
 title: "Validacion_String"
-author: "Andrea Diaz"
+author: "Andrea Diaz y Juan Sebastian"
 date: "`r Sys.Date()`"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r}
+
+```
+### ***VALIDACIÓN CONCURSO DE MÉRITOS "NOMBRE DEL CONCURSO"***
+
+El presente documento presenta un resumen de la información recibida en la aplicación de la prueba escrita. A continuación, se destalla la estructura del archivo en cuanto al número de columnas y filas. De igual manera, se presentan las cifras del número de concursantes presentes y ausentes, así como la cantidad de omisiones, multimarcas, cantidad de pruebas aplicadas, cantidad de evaluados presentes por formas de prueba, etc.
+
+El objetivo de este informe ejecutivo es brindar un resumen de los datos recibidos por el equipo de medición y evaluación (Calificación y Análisis) y obtener la confirmación del gerente del concurso.
+
+```{r}
+knitr::opts_chunk$set(echo = FALSE) 
+
+library(tidyverse)
+library(flextable)
+library(dplyr)
+library(readxl)
+library(janitor)
+library(purrr)
+library(data.table)
+library(DT)
+library(kableExtra)
+library(datasauRus)
+
+
+String <- read_excel("D:/acdm1/OneDrive - Escuela Superior de Administración Publica/Andrea/00_Sharepoint_Repositorio/MUNICIPIOS_5TAY6TA/00_CONCURSO_V_Y_VI/INPUTS/INSUMO_FINAL/VO_20230910/ANCHO/STRING.xlsx")
+
+
+muestrastring <- String %>% 
+  sample_n(100, replace = FALSE)
+
+muestrastring[muestrastring == "NA"] <- NA 
+string_NA <- is.na(muestrastring)
 ```
 
+A continuación, se presenta la información en una tabla de la cantidad de columnas y filas que tiene el archivo "String de respuestas" el cual fue entregado al equipo de Medición y Evaluación - Análisis y Calificación-.
+
+Tabla 1: Total de filas y columnas
+
+```{r}
+
+numfilas <- nrow(muestrastring)
+numcol <- ncol(muestrastring)
+
+#crear dataframe
+conteo_tabla <- data.frame(
+    "Total de Filas" = numfilas,
+    "Total de Columnas" = numcol
+)
+
+
+conteo_tabla %>% 
+  kable(col.names = c("CANTIDAD DE FILAS","CANTIDAD DE COLUMNAS"))
+
+```
+De igual manera, se verifican primero la cédulas de los concursantes, con la finalidad de identificar si hay duplicados en el archivo, en caso de encontrar duplicados, se haría una revisión de la(s) cédula(s) duplicadas para posteriormente definir cuál es el string correcto.
+
+```{r}
+
+duplicados <- anyDuplicated(muestrastring$DOCUMENTO)
+
+if (duplicados > 0) {
+  cat('<span style="color: red;">Se encontró un duplicado en la fila', duplicados, '</span>\n')
+  filaduplicada <- muestrastring[duplicados, ]
+  print(filaduplicada)
+} else {
+  cat('<span style="color: green;">No se encontraron duplicados en la columna "DOCUMENTO" del archivo de string</span>\n')
+}
+
+```
+
+En caso de encontrar duplicados se realizará la validación de cuál cédula es y a cuál municipio corresponde, dado que si el municipio cambia o es diferente en cada uno de los casos puede corresponder a una multiinscripción. 
+
+Tabla 2: Datos duplicados o multiinscripción
+
+```{r}
+cedulas_duplicadas <- muestrastring$DOCUMENTO[duplicated(muestrastring$DOCUMENTO)]
+
+# Crear un dataframe con las cédulas duplicadas y sus municipios correspondientes
+municipios_duplicados <- data.frame(DOCUMENTO = cedulas_duplicadas,
+                                    MUNICIPIO = muestrastring$MUNICIPIO[muestrastring$DOCUMENTO %in% cedulas_duplicadas])
+
+print(municipios_duplicados)
+```
+
+A continuación, se muestra en la tabla 3 el total de cocursantes presentes y ausentes.
+
+Tabla 3: Cantidad de concursantes en el archivo de string de respuestas
+
+```{r}
+
+muestrastring %>% 
+  count() %>% 
+  flextable() %>%
+  set_caption("TOTAL DE EVALUADOS")
+  #%>% 
+  #add_header_row(
+   # top = TRUE, 
+    #values = "CANTIDAD DE CONCURSANTES EN EL ARCHIVO DE STRING")
+
+
+```
+
+Así mismo, se muestra en la tabla 4 el número de concursantes presentes y ausentes por nivel.
+
+Tabla 4: Cantidad de concursantes presentes y ausentes
+
+```{r}
+############# CANTIDAD DE COCURSANTES PRESENTES Y AUSENTES (FILAS) #############
+muestrastring <- muestrastring %>%
+  mutate(TOTAL_NA = NA)
+
+na_conteo <- rowSums(is.na(muestrastring))
+muestrastring <- muestrastring %>%
+  mutate(TOTAL_NA = rowSums(is.na(.)))
+
+#Definir la cantidad de presentes y mostrar el resultado en tabla por nivel
+
+muestrastring$ASISTIO <- ifelse(muestrastring$TOTAL_NA > 20, "AUSENTE", "PRESENTE")
+
+
+#Filtro_nivel <- muestrastring$NIVEL_REAL != 0 & muestrastring$NIVEL_REAL == "Asistencial"
+#datos_filtrados <- muestrastring[Filtro_nivel, ]
+
+muestrastring <- muestrastring %>%
+  mutate(TOTAL_NA = rowSums(is.na(.))) %>%
+  mutate(TOTAL_NA = ifelse(TOTAL_NA > 0, TOTAL_NA - 20, TOTAL_NA))
+
+
+muestrastring %>%
+  group_by(NIVEL_REAL) %>%
+    summarise(Presente = sum(ASISTIO == "PRESENTE", na.rm = TRUE),
+            Ausente = sum(ASISTIO == "AUSENTE", na.rm = TRUE)) %>%
+  adorn_totals("row") %>%
+  flextable() %>%
+  fontsize(size=11, part="all") %>% 
+  autofit() %>%
+  set_caption("CANTIDAD DE CONCURSANTES PRESENTES Y AUSENTES")
+
+
+```
+En la siguiente tabla se muestra el documento del concursante versus la cantidad de omisiones registradas (mayor a 2) en el archivo. Esta validación se realiza con la finalidad de revisar la hoja de respuestas para determinar si hubo error de lectura o confirmar que el evaluado no diligenció la respuesta.
+
+Tabla 5: Cantidad de omisiones por evaluado (CASOS POR REVISAR)
+```{r}
+
+muestrastring <- muestrastring %>%
+  mutate(TOTAL_OMISIONES = rowSums(. == "O", na.rm = TRUE))
+
+TOTAL_OMISIONES <- sum(muestrastring$TOTAL_OMISIONES)
+
+
+muestrastring %>%
+  filter(TOTAL_OMISIONES > 1 ) %>%
+  select(DOCUMENTO, NIVEL_REAL, TOTAL_OMISIONES)%>% 
+  adorn_totals("row") %>%
+  flextable() %>%
+  fontsize(size = 12, part ="all") %>% 
+  autofit() %>%
+  set_caption("CANTIDAD DE OMISIONES POR EVALUADO")
+
+```
+En la tabla 6, se presenta la cantidad de multimarcas que tuvieron los evaluados.
+
+Tabla 6: Cantidad de multimarcas por evaluado (CASOS POR REVISAR)
+```{r}
+############ CANTIDAD DE MULTIMARCAS POR EVALUADOS ##############
+
+muestrastring <- muestrastring %>%
+  mutate(TOTAL_MULTIMARCAS = rowSums(. == "M", na.rm = TRUE))
+
+TOTAL_MULTIMARCAS <- sum(muestrastring$TOTAL_MULTIMARCAS)
+
+muestrastring %>%
+  filter(TOTAL_MULTIMARCAS > 1 ) %>%
+  select(DOCUMENTO,NIVEL_REAL, TOTAL_MULTIMARCAS)%>% 
+  adorn_totals("row") %>%
+  flextable() %>%
+  fontsize(size = 12, part ="all") %>% 
+  autofit() %>%
+  set_caption("CANTIDAD DE MULTIMARCAS POR EVALUADO")
+
+```
+En la tabla 7 se presenta la cantidad de formas de pruebas aplicadas por nivel, lo cual permite verificar que el número coincida con lo establecido previamente por el equipo de medición y evaluación.
+
+Tabla 7: Número de formas de pruebas aplicadas por nivel
+
+```{r}
+############ CANTIDAD DE PRUEBAS APLICADAS ###############
+
+muestrastring %>%
+  group_by(NIVEL_REAL) %>% 
+  summarise(FORMAS_DE_PRUEBAS_APLICADAS = n_distinct(FORMA_FUNCIONAL))%>%
+  adorn_totals("row") %>%
+  flextable() %>%
+  fontsize(size=12, part="all") %>% 
+  autofit() %>%
+  set_caption("CANTIDAD DE PRUEBAS APLICADAS")
+```
+
+La tabla 8 detalla la forma de prueba aplicada y la cantidad de concursantes que presentaron dicha prueba.
+
+Tabla 8: Número de concursantes por forma de pruebas aplicadas
+
+```{r}
+############ CANTIDAD DE CONCURSANTES POR PRUEBAS APLICADAS ###############
+
+muestrastring %>%
+  group_by(FORMA_FUNCIONAL) %>% 
+  count() %>%
+  adorn_totals("row") %>%
+  flextable() %>%
+  fontsize(size=12, part="all") %>% 
+  autofit() %>%
+  set_caption("CANTIDAD DE PRUEBAS APLICADAS POR CONCURSANTES")
+  
+
+```
 

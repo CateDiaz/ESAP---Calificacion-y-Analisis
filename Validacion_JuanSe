@@ -1,3 +1,4 @@
+---
 title: "Reporte Inicial - Strings"
 author: "Juan Sebastián Castro Salamanca"
 date: "`r Sys.Date()`"
@@ -23,6 +24,7 @@ library(dplyr)
 library(purrr)
 library(ggplot2)
 library(tidyr)
+library(DT)
 
 
 name_conc <- "**5TA Y 6TA**"
@@ -150,15 +152,20 @@ data.frame(
 ## Flujo Funcionales
 
 ```{r, echo=FALSE, pages.print=10, rownames.print=FALSE}
-data.frame(
-  Documento = Str_Inf$DOCUMENTO,Str_Inf$NIVEL,
-  CF_A = rowSums(Str_Inf[, grepl("^CF", names(Str_Inf))] == "A"),
-  CF_B = rowSums(Str_Inf[, grepl("^CF", names(Str_Inf))] == "B"),
-  CF_C = rowSums(Str_Inf[, grepl("^CF", names(Str_Inf))] == "C"),
-  CF_M = rowSums(Str_Inf[, grepl("^CF", names(Str_Inf))] == "M"),
-  CF_O = rowSums(Str_Inf[, grepl("^CF", names(Str_Inf))] == "O"),
-  CC_NA = rowSums(Str_Inf[, grepl("^CF", names(Str_Inf))] == "NA"),
-  CC_TOTAL = rowSums(Str_Inf[, grepl("^CF", names(Str_Inf))] != ""))
+datatable(
+  data.frame(
+    Documento = Str_Inf$DOCUMENTO,
+    Nivel = Str_Inf$NIVEL,
+    CF_A = rowSums(Str_Inf[, grepl("^CF", names(Str_Inf))] == "A"),
+    CF_B = rowSums(Str_Inf[, grepl("^CF", names(Str_Inf))] == "B"),
+    CF_C = rowSums(Str_Inf[, grepl("^CF", names(Str_Inf))] == "C"),
+    CF_M = rowSums(Str_Inf[, grepl("^CF", names(Str_Inf))] == "M"),
+    CF_O = rowSums(Str_Inf[, grepl("^CF", names(Str_Inf))] == "O"),
+    CC_NA = rowSums(Str_Inf[, grepl("^CF", names(Str_Inf))] == "NA"),
+    CC_TOTAL = rowSums(Str_Inf[, grepl("^CF", names(Str_Inf))] != "")
+  ),
+  filter = 'top'
+)
 
 ```
 
@@ -166,14 +173,18 @@ data.frame(
 
 ```{r, echo=FALSE}
 
-data.frame(  Documento = Str_Inf$DOCUMENTO,Str_Inf$NIVEL,
-  CC_A = rowSums(Str_Inf[, grepl("^CC", names(Str_Inf))] == "A"),
-  CC_B = rowSums(Str_Inf[, grepl("^CC", names(Str_Inf))] == "B"),
-  CC_C = rowSums(Str_Inf[, grepl("^CC", names(Str_Inf))] == "C"),
-  CC_M = rowSums(Str_Inf[, grepl("^CC", names(Str_Inf))] == "M"),
-  CC_O = rowSums(Str_Inf[, grepl("^CC", names(Str_Inf))] == "O"),
-  CC_NA = rowSums(Str_Inf[, grepl("^CC", names(Str_Inf))] == "NA"),
-  CC_TOTAL = rowSums(Str_Inf[, grepl("^CC", names(Str_Inf))] != "")
+datatable(
+  data.frame(
+    Documento = Str_Inf$DOCUMENTO,
+    Nivel = Str_Inf$NIVEL,
+    CC_A = rowSums(Str_Inf[, grepl("^CC", names(Str_Inf))] == "A"),
+    CC_B = rowSums(Str_Inf[, grepl("^CC", names(Str_Inf))] == "B"),
+    CC_C = rowSums(Str_Inf[, grepl("^CC", names(Str_Inf))] == "C"),
+    CC_M = rowSums(Str_Inf[, grepl("^CC", names(Str_Inf))] == "M"),
+    CC_O = rowSums(Str_Inf[, grepl("^CC", names(Str_Inf))] == "O"),
+    CC_NA = rowSums(Str_Inf[, grepl("^CC", names(Str_Inf))] == "NA"),
+    CC_TOTAL = rowSums(Str_Inf[, grepl("^CC", names(Str_Inf))] != "")
+  ),
+  filter = 'top'
 )
 ```
-

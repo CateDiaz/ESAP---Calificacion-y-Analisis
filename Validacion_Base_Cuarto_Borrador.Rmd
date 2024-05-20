@@ -1,0 +1,401 @@
+---
+title: "Reporte Inicial - Strings"
+authores: "Andrea Caterin Diaz Montealegre - Juan Sebastián Castro Salamanca"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    collapsed: true
+    theme: journal
+    highlight: kate
+    df_print: paged
+    code_folding: show   
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+#VALIDACIÓN DEL ARCHIVO STRING - CONCURSO DE MÉRITOS
+
+El presente documento presenta un resumen de la información recibida en la aplicación de la prueba escrita. A continuación, se destalla la estructura del archivo en cuanto al número de columnas y filas. De igual manera, se presentan las cifras del número de concursantes presentes y ausentes, así como la cantidad de omisiones, multimarcas, cantidad de pruebas aplicadas, cantidad de evaluados presentes por formas de prueba, etc.
+
+El objetivo de este informe ejecutivo es brindar un resumen de los datos recibidos por el equipo de medición y evaluación (Calificación y Análisis) y obtener la confirmación del gerente del concurso.
+
+```{r setup,message = FALSE, echo = FALSE} 
+knitr::opts_chunk$set(echo = FALSE) 
+
+library(tidyverse)
+library(flextable)
+library(dplyr)
+library(readxl)
+library(janitor)
+library(purrr)
+library(data.table)
+library(DT)
+library(kableExtra)
+library(datasauRus)
+library(tidyr)
+library(ggplot2)
+library(knitr)
+
+
+String <- read_excel("D:/acdm1/OneDrive - Escuela Superior de Administración Publica/Andrea/00_Sharepoint_Repositorio/MUNICIPIOS_5TAY6TA/00_CONCURSO_V_Y_VI/INPUTS/INSUMO_FINAL/VO_20230910/ANCHO/STRING.xlsx")
+
+
+muestrastring <- String %>% 
+  sample_n(100, replace = FALSE)
+
+muestrastring[muestrastring == "NA"] <- NA 
+string_NA <- is.na(muestrastring)
+
+name_conc <- "**5TA Y 6TA**"
+cat("\033[1;30m", name_conc, "\033[0m\n")
+
+```
+
+# Información General
+
+`r paste("El presente informe está centrado en los strings de respuesta del concurso", name_conc, "que comprenden un total de", dim(muestrastring)[1], "concursantes y", dim(muestrastring)[2] - 9, "ítems (",sum(grepl("^CF-", colnames(muestrastring))), "funcionales y",sum(grepl("^CC-", colnames(muestrastring))), "comportamentales). Se encuentran", length(unique(muestrastring$DOCUMENTO)), "casos únicos y", dim(muestrastring)[1] - length(unique(muestrastring$DOCUMENTO)), "caso/s repetido/s")`
+
+A continuación, se presenta la información en una tabla de la cantidad de columnas y filas que tiene el archivo "String de respuestas" el cual fue entregado al equipo de Medición y Evaluación - Análisis y Calificación-.
+
+### Total de filas y columnas
+
+```{r, echo=FALSE}
+
+numfilas <- nrow(muestrastring)
+numcol <- ncol(muestrastring)
+
+#crear dataframe
+conteo_tabla <- data.frame(
+    "Total de Filas" = numfilas,
+    "Total de Columnas" = numcol
+)
+
+
+conteo_tabla %>% 
+  kable(col.names = c("CANTIDAD DE FILAS","CANTIDAD DE COLUMNAS"))
+
+```
+
+Se realiza la verificación del documento del concursante, con la finalidad de identificar si hay duplicados en el archivo.
+
+## Verificación del documento del concursante
+
+```{r, echo=FALSE}
+
+duplicados <- anyDuplicated(muestrastring$DOCUMENTO)
+
+if (duplicados > 0) {
+  cat("Se encontró un duplicado en la fila", duplicados, "\n")
+  filaduplicada <- muestrastring[duplicados, ]
+  print(filaduplicada)
+} else {
+  cat('No se encontraron duplicados en la columna "DOCUMENTO" del archivo de string \n')
+}
+
+```
+
+En caso de encontrar duplicados se realizará la validación de cuál cédula es y a cuál municipio corresponde, dado que si el municipio cambia o es diferente en cada uno de los casos puede corresponder a una multi-inscripción.
+
+Datos duplicados o multi-inscripción
+
+```{r, echo=FALSE}
+cedulas_duplicadas <- muestrastring$DOCUMENTO[duplicated(muestrastring$DOCUMENTO)]
+
+# Crear un dataframe con las cédulas duplicadas y sus municipios correspondientes
+municipios_duplicados <- data.frame(DOCUMENTO = cedulas_duplicadas,
+                                    MUNICIPIO = muestrastring$MUNICIPIO[muestrastring$DOCUMENTO %in% cedulas_duplicadas])
+
+print(municipios_duplicados)
+```
+
+## Cantidad de concursantes presentes y ausentes
+
+A continuación, se muestra el total de cocursantes presentes y ausentes
+
+```{r, echo=FALSE}
+
+muestrastring %>% 
+  count() %>% 
+  flextable() %>%
+  set_caption("TOTAL DE EVALUADOS")
+
+```
+
+Así mismo, se muestra el número de concursantes presentes y ausentes por nivel.
+
+```{r, echo=FALSE}
+
+############# CANTIDAD DE COCURSANTES PRESENTES Y AUSENTES (FILAS) #############
+muestrastring <- muestrastring %>%
+  mutate(TOTAL_NA = NA)
+
+na_conteo <- rowSums(is.na(muestrastring))
+muestrastring <- muestrastring %>%
+  mutate(TOTAL_NA = rowSums(is.na(.)))
+
+#Definir la cantidad de presentes y mostrar el resultado en tabla por nivel
+
+muestrastring$ASISTIO <- ifelse(muestrastring$TOTAL_NA > 20, "AUSENTE", "PRESENTE")
+
+
+#Filtro_nivel <- muestrastring$NIVEL_REAL != 0 & muestrastring$NIVEL_REAL == "Asistencial"
+#datos_filtrados <- muestrastring[Filtro_nivel, ]
+
+muestrastring <- muestrastring %>%
+  mutate(TOTAL_NA = rowSums(is.na(.))) %>%
+  mutate(TOTAL_NA = ifelse(TOTAL_NA > 0, TOTAL_NA - 20, TOTAL_NA))
+
+
+muestrastring %>%
+  group_by(NIVEL_REAL) %>%
+    summarise(Presente = sum(ASISTIO == "PRESENTE", na.rm = TRUE),
+            Ausente = sum(ASISTIO == "AUSENTE", na.rm = TRUE)) %>%
+  adorn_totals("row") %>%
+  flextable() %>%
+  fontsize(size=11, part="all") %>% 
+  autofit() %>%
+  set_caption("CANTIDAD DE CONCURSANTES PRESENTES Y AUSENTES")
+
+
+```
+
+## Municipios
+
+Frente a los municipios de aplicación, se muestra la sigueinte tabla:
+
+```{r, echo=FALSE}
+
+datatable(data.frame(Municipio = names(table(muestrastring$MUNICIPIO)),
+  Participantes = as.vector(table(muestrastring$MUNICIPIO))))
+
+```
+
+## Empleos
+
+Frente a la relación entre empleos y municipios de aplicación, se encontró:
+
+```{r, echo=FALSE}
+DF_Empleos=data.frame(aggregate(NIVEL_REAL ~ EMPLEO, data = muestrastring, FUN = function(x) unique(x)))
+
+```
+
+`r paste("La cantidad de EMPLEOS evaluados en el concurso ascendio a ",length(unique(muestrastring$EMPLEO)),"de las cuales fueron:")` - `r paste (names(table(DF_Empleos$NIVEL_REAL)), ": ", table(DF_Empleos$NIVEL_REAL), sep = "")`
+
+```{r, echo=FALSE}
+datatable(DF_Empleos)
+```
+
+
+```{r, echo=FALSE}
+
+DF <- as.data.frame(table(muestrastring$EMPLEO, muestrastring$MUNICIPIO))
+DF <- spread(DF, Var2, Freq)
+colnames(DF) <- c("OPEC", unique(muestrastring$MUNICIPIO))
+DF[is.na(DF)] <- 0
+DF$Conteo_Ceros <- rowSums(DF == 0)
+DF$Diferencia <- length(unique(muestrastring$MUNICIPIO)) - DF$Conteo_Ceros
+DF$LOG <- DF$Diferencia == 1
+
+DF_falso <- DF[DF$LOG == FALSE, ]
+
+```
+
+
+-   `r paste("La cantidad de Empleos a las que se concursaron desde más de un municipio fue de:",nrow(DF_falso))`
+
+`r paste("**Si el anterior dato fue 0 (cero), omita la siguiente información.**")`
+
+-   En la siguiente tabla se relacionan los EMPLEOS en cuestión con sus diferentes municipios de aplicación.
+
+```{r, echo=FALSE}
+DF_falso[, !(names(DF_falso) %in% c("Conteo_Ceros", "Diferencia", "LOG")) & colSums(DF_falso != 0) > 0]
+
+```
+
+## Coincidencia de la forma funcional aplicada y el nivel
+
+```{r, echo=FALSE}
+
+#Revisar que coincida la forma funcional con la primera letra del nivel
+
+Comparacion_TF<-(substr(muestrastring$FORMA_FUNCIONAL, 1, 1) == substr(muestrastring$NIVEL, 1, 1))
+
+Comparacion_DF<-data.frame(Resultado = names(table (substr(muestrastring$FORMA_FUNCIONAL, 1, 1) == substr(muestrastring$NIVEL, 1, 1))),
+                 Frecuencia = as.numeric(table (substr(muestrastring$FORMA_FUNCIONAL, 1, 1) == substr(muestrastring$NIVEL, 1, 1))),
+                 Porcentaje = prop.table(table (substr(muestrastring$FORMA_FUNCIONAL, 1, 1) == substr(muestrastring$NIVEL, 1, 1))) * 100)
+
+```
+
+## Nivel y Forma Funcional
+
+```{r, echo=FALSE, warning=FALSE}
+ggplot(muestrastring) +
+  aes(x = NIVEL_REAL, y = ..count.., label = ..count..) +
+  geom_bar(fill = "#228B90") +
+  geom_text(stat = 'count', aes(label = ..count..), vjust = -0.5, size = 4) + # Agrega etiquetas
+  labs(
+    x = "Niveles",
+    y = "Cantidad de evaluados",
+    title = "Niveles Reportados"
+  ) +
+  theme_classic() +
+  theme(
+    plot.title = element_text(size = 20, hjust = 0.5),
+    axis.title.y = element_text(size = 15),
+    axis.title.x = element_text(size = 15),
+    axis.text.x = element_text(size = 10),
+    axis.text.y = element_text(size = 10)
+  )
+```
+
+-   `r paste("En el", round(Comparacion_DF$Porcentaje.Freq[which(Comparacion_DF$Resultado == TRUE)],2),"% de los casos se implemento una forma de prueba correspondiente al nivel de aplicacion")`
+
+-   `r paste("**Si el porcentaje fue 100%, omita la siguiente información:** La cantidad de casos que no parecen corresponder asciende a", length(which(Comparacion_TF == FALSE)),"y se ubican en las siguientes filas")`
+
+```{r, echo=FALSE}
+
+data.frame(
+  Pos = which(Comparacion_TF == FALSE)+1,
+  Documento = muestrastring$DOCUMENTO[which(Comparacion_TF == FALSE)])
+
+```
+
+En la tabla se presenta la cantidad de formas de pruebas aplicadas por nivel, lo cual permite verificar que el número coincida con lo establecido previamente por el equipo de medición y evaluación.
+
+Número de formas de pruebas aplicadas por nivel
+
+```{r, echo=FALSE}
+############ CANTIDAD DE PRUEBAS APLICADAS ###############
+
+muestrastring %>%
+  group_by(NIVEL_REAL) %>% 
+  summarise(FORMAS_DE_PRUEBAS_APLICADAS = n_distinct(FORMA_FUNCIONAL))%>%
+  adorn_totals("row") %>%
+  flextable() %>%
+  fontsize(size=12, part="all") %>% 
+  autofit() %>%
+  set_caption("CANTIDAD DE PRUEBAS APLICADAS")
+```
+
+Se detalla la forma de prueba aplicada y la cantidad de concursantes que presentaron dicha prueba.
+
+Número de concursantes por forma de pruebas aplicadas
+
+```{r, echo=FALSE}
+############ CANTIDAD DE CONCURSANTES POR PRUEBAS APLICADAS ###############
+
+muestrastring %>%
+  group_by(FORMA_FUNCIONAL) %>% 
+  count() %>%
+  adorn_totals("row") %>%
+  flextable() %>%
+  fontsize(size=12, part="all") %>% 
+  autofit() %>%
+  set_caption("CANTIDAD DE PRUEBAS APLICADAS POR CONCURSANTES")
+  
+
+```
+
+En la siguiente tabla se muestra el documento del concursante versus la cantidad de omisiones registradas (mayor a 2) en el archivo. Esta validación se realiza con la finalidad de revisar la hoja de respuestas para determinar si hubo error de lectura o confirmar que el evaluado no diligenció la respuesta.
+
+Cantidad de omisiones por evaluado (CASOS POR REVISAR)
+
+
+```{r, recho=FALSE}
+
+muestrastring <- muestrastring %>%
+  mutate(TOTAL_OMISIONES = rowSums(. == "O", na.rm = TRUE)) %>%
+  mutate(COLUMNAS_CON_O = apply(., 1, function(fila) {
+    paste(names(muestrastring)[fila == "O"], collapse = ", ")
+  }))
+
+
+TOTAL_OMISIONES <- sum(muestrastring$TOTAL_OMISIONES)
+
+muestrastring %>%
+  filter(TOTAL_OMISIONES > 1) %>%
+  select(DOCUMENTO, NIVEL_REAL, TOTAL_OMISIONES, COLUMNAS_CON_O) %>%
+  adorn_totals("row") %>%
+  flextable() %>%
+  fontsize(size = 12, part ="all") %>%
+  autofit() %>%
+  set_caption("CANTIDAD DE OMISIONES POR EVALUADO")
+
+
+```
+
+
+
+
+En la tabla se presenta la cantidad de multimarcas que tuvieron los evaluados.
+
+Cantidad de multimarcas por evaluado (CASOS POR REVISAR)
+
+```{r, echo=FALSE}
+############ CANTIDAD DE MULTIMARCAS POR EVALUADOS ##############
+
+muestrastring <- muestrastring %>%
+  mutate(TOTAL_MULTIMARCA = rowSums(. == "M", na.rm = TRUE)) %>%
+  mutate(COLUMNAS_CON_M = apply(., 1, function(fila) {
+    paste(names(muestrastring)[fila == "M"], collapse = ", ")
+  }))
+
+
+TOTAL_MULTIMARCA <- sum(muestrastring$MULTIMARCA)
+
+muestrastring %>%
+  filter(TOTAL_MULTIMARCA > 1) %>%
+  select(DOCUMENTO, NIVEL_REAL, TOTAL_MULTIMARCA, COLUMNAS_CON_M) %>%
+  adorn_totals("row") %>%
+  flextable() %>%
+  fontsize(size = 12, part ="all") %>%
+  autofit() %>%
+  set_caption("CANTIDAD DE OMISIONES POR EVALUADO")
+
+
+```
+
+## Flujos de Respuesta
+
+### Flujo Funcionales
+
+```{r, echo=FALSE, pages.print=10, rownames.print=FALSE}
+datatable(
+  data.frame(
+    Documento = muestrastring$DOCUMENTO,
+    Nivel = muestrastring$NIVEL,
+    CF_A = rowSums(muestrastring[, grepl("^CF", names(muestrastring))] == "A"),
+    CF_B = rowSums(muestrastring[, grepl("^CF", names(muestrastring))] == "B"),
+    CF_C = rowSums(muestrastring[, grepl("^CF", names(muestrastring))] == "C"),
+    CF_M = rowSums(muestrastring[, grepl("^CF", names(muestrastring))] == "M"),
+    CF_O = rowSums(muestrastring[, grepl("^CF", names(muestrastring))] == "O"),
+    CC_NA = rowSums(muestrastring[, grepl("^CF", names(muestrastring))] == "NA"),
+    CC_TOTAL = rowSums(muestrastring[, grepl("^CF", names(muestrastring))] != "")
+  ),
+  filter = 'top'
+)
+
+```
+
+### Flujo Comportamentales
+
+```{r, echo=FALSE}
+
+datatable(
+  data.frame(
+    Documento = muestrastring$DOCUMENTO,
+    Nivel = muestrastring$NIVEL,
+    CC_A = rowSums(muestrastring[, grepl("^CC", names(muestrastring))] == "A"),
+    CC_B = rowSums(muestrastring[, grepl("^CC", names(muestrastring))] == "B"),
+    CC_C = rowSums(muestrastring[, grepl("^CC", names(muestrastring))] == "C"),
+    CC_M = rowSums(muestrastring[, grepl("^CC", names(muestrastring))] == "M"),
+    CC_O = rowSums(muestrastring[, grepl("^CC", names(muestrastring))] == "O"),
+    CC_NA = rowSums(muestrastring[, grepl("^CC", names(muestrastring))] == "NA"),
+    CC_TOTAL = rowSums(muestrastring[, grepl("^CC", names(muestrastring))] != "")
+  ),
+  filter = 'top'
+)
+```

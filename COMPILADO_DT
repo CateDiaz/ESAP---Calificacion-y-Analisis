@@ -1,33 +1,57 @@
 ---
+title: "Validación del Archivo String - Concurso de Méritos"
+author: |
+  <div>
+    <p><strong>Elaborado por:</strong></p>
+    <ul>
+      <li>Andrea Caterine Diaz Montealegre</li>
+      <li>Juan Sebastian Castro Salamanca</li>
+    </ul>
+    <p><strong>Revisado y Aprobado por:</strong></p>
+    <ul>
+      <li>Ricardo Macias Bohorquez</li>
+      <li>Sergio Enrique Mora Mojica</li>
+    </ul>
+  </div>
+date: "`r format(Sys.Date(), '%d de %B de %Y')`"
 output: 
   html_document:
     toc: true
-    toc_float: true
-    collapsed: true
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
     theme: journal
     highlight: kate
     df_print: paged
-    code_folding: show   
+    code_folding: show
+header-includes:
+  - |
+    <style>
+      body {
+        text-align: justify;
+      }
+    </style>
 editor_options: 
   markdown: 
-    wrap: 72
+    wrap: 90
 ---
 
-# VALIDACIÓN DEL ARCHIVO STRING - CONCURSO DE MÉRITOS
+------------------------------------------------------------------------------------------
 
-El presente documento presenta un resumen de la información recibida en
-la aplicación de la prueba escrita. A continuación, se destalla la
-estructura del archivo en cuanto al número de columnas y filas. De igual
-manera, se presentan las cifras del número de concursantes presentes y
-ausentes, así como la cantidad de omisiones, multimarcas, cantidad de
-pruebas aplicadas, cantidad de evaluados presentes por formas de prueba,
-etc.
+![](images/clipboard-528376398.png)
 
-El objetivo de este informe ejecutivo es brindar un resumen de los datos
-recibidos por el equipo de medición y evaluación (Calificación y
-Análisis) y obtener la confirmación del gerente del concurso.
+*El presente documento ofrece un resumen de la información recibida en la aplicación de la
+prueba escrita. A continuación, se detalla la estructura del archivo en cuanto al número
+de columnas y filas. También se presentan la la cantidad de omisiones, multimarcas,
+pruebas aplicadas y evaluados por formas de prueba.*
 
-```{r setup,message = FALSE, echo = FALSE}
+***El objetivo de este informe ejecutivo es brindar un resumen de los datos recibidos por
+el equipo de medición y evaluación (Calificación y Análisis) y obtener la confirmación del
+gerente del concurso.***
+
+------------------------------------------------------------------------------------------
+
+```{r setup,message = FALSE, include=FALSE,echo = FALSE}
 knitr::opts_chunk$set(echo = FALSE) 
 
 # install.packages("tidyverse")
@@ -43,7 +67,7 @@ knitr::opts_chunk$set(echo = FALSE)
 # install.packages("tidyr")
 # install.packages("ggplot2")
 # install.packages("knitr")
- 
+# install.packages("htmltools")
 
 library(tidyverse)
 library(flextable)
@@ -58,74 +82,91 @@ library(datasauRus)
 library(tidyr)
 library(ggplot2)
 library(knitr)
+library(htmltools)
 
 
-String <- read_excel("C:/Users/psjua/Downloads/Matriz ejemplo entrega resultados DT 2024.xlsx")
+String <- read_excel("C:/Users/juans.castros/Downloads/Matriz ejemplo entrega resultados DT 2024.xlsx")
 
 
-muestrastring <- String %>% 
-  sample_n(15, replace = FALSE)
+# muestrastring <- String %>% sample_n(15, replace = FALSE)
 
-String[String == "NA"] <- NA 
-string_NA <- is.na(muestrastring)
+#String[String == "NA"] <- NA 
+#string_NA <- is.na(muestrastring)
 
-name_conc <- "**Directores Territoriales**"
+name_conc <- "**Directores Territoriales - 2024**"
 cat("\033[1;30m", name_conc, "\033[0m\n")
 
 ```
 
 # Información General
 
-`r paste("El presente informe está centrado en los strings de respuesta del concurso", name_conc, "que comprenden un total de", dim(muestrastring)[1], "concursantes y", dim(muestrastring)[2] - 9, "ítems (",sum(grepl("^CF-", colnames(muestrastring))), "funcionales y",sum(grepl("^CC-", colnames(muestrastring))), "comportamentales). Se encuentran", length(unique(muestrastring$DOCUMENTO)), "casos únicos y", dim(muestrastring)[1] - length(unique(muestrastring$DOCUMENTO)), "caso/s repetido/s")`
+::: {style="font-size: 1em; text-align: justify;"}
+`r paste( "Este informe se centra en los strings de respuesta del concurso", name_conc, ", que incluyen un total de", dim(String)[1], "concursantes y", dim(String)[2] - 9, "ítems (", sum(grepl("^CF-", colnames(String))), "funcionales y", sum(grepl("^CC-", colnames(String))), "comportamentales).", "Hay", length(setdiff(colnames(String), grep("^CC-|^CF", colnames(String), value = TRUE))), "columnas que no corresponden a ítems. Los nombres de estas columnas son:", paste(paste0("**", setdiff(colnames(String), grep("^CC-|^CF", colnames(String), value = TRUE)), "**"), collapse = ", "), "." )`
 
-A continuación, se presenta la información en una tabla de la cantidad
-de columnas y filas que tiene el archivo "String de respuestas" el cual
-fue entregado al equipo de Medición y Evaluación - Análisis y
-Calificación-.
+`r paste ("Se encuentran", length(unique(String$CC)), "casos únicos y", dim(String)[1] - length(unique(String$CC)), "caso/s repetido/s")`
 
-### Total de filas y columnas
+A continuación, se presenta la información en una tabla de la cantidad total de columnas y
+filas que tiene el archivo "String de respuestas" el cual fue entregado al equipo de
+Medición y Evaluación - Análisis y Calificación-.
+
+El archivo de strings contiene:
+:::
 
 ```{r, echo=FALSE}
 
-numfilas <- nrow(muestrastring)
-numcol <- ncol(muestrastring)
+numfilas <- nrow(String)
+numcol <- ncol(String)
 
-#crear dataframe
+# Crear el dataframe conteo_tabla
 conteo_tabla <- data.frame(
-    "Total de Filas" = numfilas,
-    "Total de Columnas" = numcol
+  "Total de Filas" = numfilas,
+  "Total de Columnas" = numcol
 )
 
-conteo_tabla %>% 
-  kable(col.names = c("CANTIDAD DE FILAS","CANTIDAD DE COLUMNAS"))
+# Mejorar el estilo de la tabla
+conteo_tabla %>%
+  kable(col.names = c("Cantidad de Filas", "Cantidad de Columnas")) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), 
+                full_width = TRUE) %>%
+  add_header_above(c("Resumen del Dataframe" = 2)) %>%
+  column_spec(1, bold = TRUE, border_right = TRUE) %>%
+  column_spec(2, border_left = TRUE) %>%
+  row_spec(0, bold = TRUE, color = "black")
 
 ```
 
-Se realiza la verificación del documento del concursante, con la
-finalidad de identificar si hay duplicados en el archivo.
-
 ## Verificación del documento del concursante
+
+::: {style="font-size: 1em; text-align: justify;"}
+Se realiza la verificación del documento del concursante con el objetivo de identificar
+posibles duplicados en el archivo. En caso de que existan, se podrán identificar dentro de
+la base de datos.
+:::
 
 ```{r, echo=FALSE}
 
-duplicados <- anyDuplicated(muestrastring$CC)
+duplicados <- duplicated(String$CC) | duplicated(String$CC, fromLast = TRUE)
 
-if (duplicados > 0) {
-  cat("Se encontró un duplicado en la fila", duplicados, "\n")
-  filaduplicada <- muestrastring[duplicados, ]
-  print(filaduplicada)
+if (any(duplicados)) {
+  cat("Se encontraron duplicados en las siguientes filas:\n")
+  # Crear un dataframe con una columna adicional para los números de fila
+  String_con_filas <- cbind(Fila = 1:nrow(String), String)
+  # Filtrar las filas duplicadas
+  filas_duplicadas <- String_con_filas[duplicados, ]
+  print(filas_duplicadas, row.names = FALSE)
 } else {
-  cat('No se encontraron duplicados en la columna "CC" del archivo de string \n')
+  cat('No se encontraron registros duplicados\n')
 }
 
 ```
 
-En caso de encontrar duplicados se realizará la validación de cuál
-cédula es y a cuál municipio corresponde, dado que si el municipio
-cambia o es diferente en cada uno de los casos puede corresponder a una
-multi-inscripción.
+::: {style="font-size: 1em; text-align: justify;"}
+En caso de encontrar duplicados se realizará la validación de cuál cédula es y a cuál
+municipio corresponde, dado que si el municipio cambia o es diferente en cada uno de los
+casos puede corresponder a una multi-inscripción.
+:::
 
-## Cantidad de concursantes
+### Concursantes por Territorial
 
 ```{r, echo=FALSE,include=FALSE}
 Con_Terr<- String %>%
@@ -133,226 +174,91 @@ Con_Terr<- String %>%
   bind_rows(summarise(., Territorial = "Total", n = sum(n))) %>%
   rename(`# de Concursantes` = n) %>%
   flextable() %>%
-  set_caption("TOTAL DE EVALUADOS POR TERRITORIAL") %>%
-  width(j = c("Territorial", "# de Concursantes"), width = 3)
+  set_caption("Total de Evaluados por Territorial") %>%
+  width(j = c("Territorial", "# de Concursantes"), width = 4)
 
 Total_CC<-length(String$CC)
 ```
 
-`r paste("La cantidad de concursantes vinculados al presente concurso es de:",``Total_CC,". Este dato fue calculado a partir del conteo de la variable "CC" de cada uno de los evaluados")`
-
-### Concursantes por Territorial
+::: {style="font-size: 1em; text-align: justify;"}
+A continuación, se presenta la cantidad de concursantes por territorial en la siguiente
+tabla.
+:::
 
 ```{r, echo=FALSE}
 Con_Terr
-
-```
-
-```{r, echo=FALSE}
-
-DF <- as.data.frame(table(muestrastring$EMPLEO, muestrastring$MUNICIPIO))
-DF <- spread(DF, Var2, Freq)
-colnames(DF) <- c("OPEC", unique(muestrastring$MUNICIPIO))
-DF[is.na(DF)] <- 0
-DF$Conteo_Ceros <- rowSums(DF == 0)
-DF$Diferencia <- length(unique(muestrastring$MUNICIPIO)) - DF$Conteo_Ceros
-DF$LOG <- DF$Diferencia == 1
-
-DF_falso <- DF[DF$LOG == FALSE, ]
-```
-
-`r paste("La cantidad de Empleos a las que se concursaron desde más de un municipio fue de:",)`
-
-## Flujo de respuestas
-
-### 
-
-`r paste("**Si el anterior dato fue 0 (cero), omita la siguiente información.**")`
-
--   En la siguiente tabla se relacionan los EMPLEOS en cuestión con sus
-    diferentes municipios de aplicación.
-
-```{r, echo=FALSE}
-DF_falso[, !(names(DF_falso) %in% c("Conteo_Ceros", "Diferencia", "LOG")) & colSums(DF_falso != 0) > 0]
-
-```
-
-## Coincidencia de la forma funcional aplicada y el nivel
-
-```{r, echo=FALSE}
-
-#Revisar que coincida la forma funcional con la primera letra del nivel
-
-Comparacion_TF<-(substr(muestrastring$FORMA_FUNCIONAL, 1, 1) == substr(muestrastring$NIVEL, 1, 1))
-
-Comparacion_DF<-data.frame(Resultado = names(table (substr(muestrastring$FORMA_FUNCIONAL, 1, 1) == substr(muestrastring$NIVEL, 1, 1))),
-                 Frecuencia = as.numeric(table (substr(muestrastring$FORMA_FUNCIONAL, 1, 1) == substr(muestrastring$NIVEL, 1, 1))),
-                 Porcentaje = prop.table(table (substr(muestrastring$FORMA_FUNCIONAL, 1, 1) == substr(muestrastring$NIVEL, 1, 1))) * 100)
-
-```
-
-## Nivel y Forma Funcional
-
-```{r, echo=FALSE, warning=FALSE}
-ggplot(muestrastring) +
-  aes(x = NIVEL_REAL, y = ..count.., label = ..count..) +
-  geom_bar(fill = "#228B90") +
-  geom_text(stat = 'count', aes(label = ..count..), vjust = -0.5, size = 4) + # Agrega etiquetas
-  labs(
-    x = "Niveles",
-    y = "Cantidad de evaluados",
-    title = "Niveles Reportados"
-  ) +
-  theme_classic() +
-  theme(
-    plot.title = element_text(size = 20, hjust = 0.5),
-    axis.title.y = element_text(size = 15),
-    axis.title.x = element_text(size = 15),
-    axis.text.x = element_text(size = 10),
-    axis.text.y = element_text(size = 10)
-  )
-```
-
--   `r paste("En el", round(Comparacion_DF$Porcentaje.Freq[which(Comparacion_DF$Resultado == TRUE)],2),"% de los casos se implemento una forma de prueba correspondiente al nivel de aplicacion")`
-
--   `r paste("**Si el porcentaje fue 100%, omita la siguiente información:** La cantidad de casos que no parecen corresponder asciende a", length(which(Comparacion_TF == FALSE)),"y se ubican en las siguientes filas")`
-
-```{r, echo=FALSE}
-
-data.frame(
-  Pos = which(Comparacion_TF == FALSE)+1,
-  Documento = muestrastring$DOCUMENTO[which(Comparacion_TF == FALSE)])
-
-```
-
-En la tabla se presenta la cantidad de formas de pruebas aplicadas por
-nivel, lo cual permite verificar que el número coincida con lo
-establecido previamente por el equipo de medición y evaluación.
-
-Número de formas de pruebas aplicadas por nivel
-
-```{r, echo=FALSE}
-############ CANTIDAD DE PRUEBAS APLICADAS ###############
-
-muestrastring %>%
-  group_by(NIVEL_REAL) %>% 
-  summarise(FORMAS_DE_PRUEBAS_APLICADAS = n_distinct(FORMA_FUNCIONAL))%>%
-  adorn_totals("row") %>%
-  flextable() %>%
-  fontsize(size=12, part="all") %>% 
-  autofit() %>%
-  set_caption("CANTIDAD DE PRUEBAS APLICADAS")
-```
-
-Se detalla la forma de prueba aplicada y la cantidad de concursantes que
-presentaron dicha prueba.
-
-Número de concursantes por forma de pruebas aplicadas
-
-```{r, echo=FALSE}
-############ CANTIDAD DE CONCURSANTES POR PRUEBAS APLICADAS ###############
-
-muestrastring %>%
-  group_by(FORMA_FUNCIONAL) %>% 
-  count() %>%
-  adorn_totals("row") %>%
-  flextable() %>%
-  fontsize(size=12, part="all") %>% 
-  autofit() %>%
-  set_caption("CANTIDAD DE PRUEBAS APLICADAS POR CONCURSANTES")
-  
-
-```
-
-En la siguiente tabla se muestra el documento del concursante versus la
-cantidad de omisiones registradas (mayor a 2) en el archivo. Esta
-validación se realiza con la finalidad de revisar la hoja de respuestas
-para determinar si hubo error de lectura o confirmar que el evaluado no
-diligenció la respuesta.
-
-Cantidad de omisiones por evaluado (CASOS POR REVISAR)
-
-```{r, echo=FALSE}
-
-muestrastring <- muestrastring %>%
-  mutate(TOTAL_OMISIONES = rowSums(. == "O", na.rm = TRUE))
-
-TOTAL_OMISIONES <- sum(muestrastring$TOTAL_OMISIONES)
-
-
-muestrastring %>%
-  filter(TOTAL_OMISIONES > 1 ) %>%
-  select(DOCUMENTO, NIVEL_REAL, TOTAL_OMISIONES)%>% 
-  adorn_totals("row") %>%
-  flextable() %>%
-  fontsize(size = 12, part ="all") %>% 
-  autofit() %>%
-  set_caption("CANTIDAD DE OMISIONES POR EVALUADO")
-
-```
-
-En la tabla se presenta la cantidad de multimarcas que tuvieron los
-evaluados.
-
-Cantidad de multimarcas por evaluado (CASOS POR REVISAR)
-
-```{r, echo=FALSE}
-############ CANTIDAD DE MULTIMARCAS POR EVALUADOS ##############
-
-muestrastring <- muestrastring %>%
-  mutate(TOTAL_MULTIMARCAS = rowSums(. == "M", na.rm = TRUE))
-
-TOTAL_MULTIMARCAS <- sum(muestrastring$TOTAL_MULTIMARCAS)
-
-muestrastring %>%
-  filter(TOTAL_MULTIMARCAS > 1 ) %>%
-  select(CC,Territorial, TOTAL_MULTIMARCAS)%>% 
-  adorn_totals("row") %>%
-  flextable() %>%
-  fontsize(size = 12, part ="all") %>% 
-  autofit() %>%
-  set_caption("CANTIDAD DE MULTIMARCAS POR EVALUADO")
-
 ```
 
 ## Flujos de Respuesta
 
-### Flujo Funcionales
+### Flujo Funcionales (C. Común)
+
+::: {style="font-size: 1em; text-align: justify;"}
+Este componente incluye los ítems desde CF-01 hasta CF-72. En la siguiente tabla se
+muestra el flujo de respuestas. Si se detectan MULTICLAVES u OMISIONES, se reportarán en
+la tabla.
+:::
 
 ```{r, echo=FALSE, pages.print=10, rownames.print=FALSE}
-datatable(
-  data.frame(
-    Documento = muestrastring$DOCUMENTO,
-    Nivel = muestrastring$NIVEL,
-    CF_A = rowSums(muestrastring[, grepl("^CF", names(muestrastring))] == "A"),
-    CF_B = rowSums(muestrastring[, grepl("^CF", names(muestrastring))] == "B"),
-    CF_C = rowSums(muestrastring[, grepl("^CF", names(muestrastring))] == "C"),
-    CF_M = rowSums(muestrastring[, grepl("^CF", names(muestrastring))] == "M"),
-    CF_O = rowSums(muestrastring[, grepl("^CF", names(muestrastring))] == "O"),
-    CC_NA = rowSums(muestrastring[, grepl("^CF", names(muestrastring))] == "NA"),
-    CC_TOTAL = rowSums(muestrastring[, grepl("^CF", names(muestrastring))] != "")
-  ),
-  filter = 'top'
+datatable(as.data.frame(String %>%
+  pivot_longer(cols = matches("^CF-0?[1-9]$|^CF-[1-6][0-9]$|^CF-7[0-2]$"), names_to = "Item", values_to = "String") %>%
+  group_by(Item, String) %>%
+  summarise(Cantidad = n(), .groups = 'drop') %>%
+  pivot_wider(names_from = String, values_from = Cantidad, values_fill = list(Cantidad = 0)) %>%
+  arrange(Item)),
+  filter = 'top',
+  rownames = FALSE,
+  options = list(pageLength = 8)
 )
 
+```
+
+### Flujo Funcionales (C. Específico)
+
+::: {style="font-size: 1em; text-align: justify;"}
+Este componente es específico por territorial y comprende los ítems desde CF-73 hasta
+CF-80. Si se detectan MULTICLAVES u OMISIONES, se reportarán en la tabla.
+:::
+
+```{r, echo=FALSE, rownames.print=FALSE}
+
+datatable(as.data.frame(String %>%
+  pivot_longer(cols = matches("^CF-7[3-9]$|^CF-80$"), names_to = "Item", values_to = "String") %>% 
+    group_by(Territorial, Item, String) %>%
+    summarise(Cantidad = n(), .groups = 'drop') %>%
+    pivot_wider(names_from = String, values_from = Cantidad, values_fill = list(Cantidad = 0)) %>%
+    arrange(Territorial, Item)),
+  filter = 'top',
+  rownames = FALSE,
+  options = list(pageLength = 8)
+)
 ```
 
 ### Flujo Comportamentales
 
-```{r, echo=FALSE}
+::: {style="font-size: 1em; text-align: justify;"}
+`r paste("Este componente comprende los ítems CC-",           sprintf("%02d", min(as.numeric(sub("CC-", "", grep("^CC-[0-9]+$", colnames(String), value = TRUE))))),           " hasta CC-",           sprintf("%02d", max(as.numeric(sub("CC-", "", grep("^CC-[0-9]+$", colnames(String), value = TRUE))))),           ". En la siguiente tabla encontrará el flujo de respuestas. Si se detectan MULTICLAVES u OMISIONES, se reportarán en la tabla.",           sep = "")`
+:::
 
-datatable(
-  data.frame(
-    Documento = muestrastring$DOCUMENTO,
-    Nivel = muestrastring$NIVEL,
-    CC_A = rowSums(muestrastring[, grepl("^CC", names(muestrastring))] == "A"),
-    CC_B = rowSums(muestrastring[, grepl("^CC", names(muestrastring))] == "B"),
-    CC_C = rowSums(muestrastring[, grepl("^CC", names(muestrastring))] == "C"),
-    CC_M = rowSums(muestrastring[, grepl("^CC", names(muestrastring))] == "M"),
-    CC_O = rowSums(muestrastring[, grepl("^CC", names(muestrastring))] == "O"),
-    CC_NA = rowSums(muestrastring[, grepl("^CC", names(muestrastring))] == "NA"),
-    CC_TOTAL = rowSums(muestrastring[, grepl("^CC", names(muestrastring))] != "")
-  ),
-  filter = 'top'
+```{r, echo=FALSE, pages.print=10, rownames.print=FALSE}
+datatable(as.data.frame(String %>%
+  pivot_longer(cols = matches("^CC-"), names_to = "Item", values_to = "String") %>%
+  group_by(Item, String) %>%
+  summarise(Cantidad = n(), .groups = 'drop') %>%
+  pivot_wider(names_from = String, values_from = Cantidad, values_fill = list(Cantidad = 0)) %>%
+  arrange(Item)),
+  filter = 'top',
+  rownames = FALSE,
+  options = list(pageLength = 8)
 )
+
 ```
+
+::: {style="font-size: 1.1em; text-align: justify; color:black"}
+Agradecemos su atención a este informe.
+
+El equipo de medición y evaluación (**Calificación y Análisis**) queda atento a cualquier
+comentario o sugerencia que puedan tener. No duden en contactarnos para cualquier
+aclaración adicional. Asimismo, solicitamos la **confirmación** del gerente del concurso
+para proceder con el inicio de la calificación.
+:::
